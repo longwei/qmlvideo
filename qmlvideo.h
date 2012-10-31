@@ -3,18 +3,46 @@
 
 #include <QDeclarativeItem>
 
+class QTimer;
+
 class QmlVideo : public QDeclarativeItem
 {
     Q_OBJECT
+    Q_ENUMS(State);
+    Q_PROPERTY(State state READ state WRITE setState);
 public:
+    enum State
+    {
+        Stopped,
+        Playing,
+        Paused
+    };
+
     explicit QmlVideo(QDeclarativeItem *parent = 0);
     
     void paint(QPainter *p, const QStyleOptionGraphicsItem *style, QWidget *widget);
 
+    Q_INVOKABLE State state();
+
 signals:
-    
+    void stateChanged(State state);
+    void stopped();
+    void playing();
+    void paused();
+
 public slots:
-    
+    Q_INVOKABLE void play();
+    Q_INVOKABLE void pause();
+    Q_INVOKABLE void stop();
+    Q_INVOKABLE void playPause();
+    Q_INVOKABLE void setState(State state);
+
+protected slots:
+    virtual void frame();
+
+private:
+    QTimer *m_frameTimer;
+    State m_state;
 };
 
 #endif // QMLVIDEO_H

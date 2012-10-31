@@ -7,7 +7,15 @@ Rectangle {
     height: 360
 
     Video {
+        id: video
         anchors.margins: 10;
         anchors.fill: parent;
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        onClicked: {
+            video.playPause();
+        }
     }
 }
