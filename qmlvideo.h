@@ -31,11 +31,11 @@ signals:
     void paused();
 
 public slots:
-    Q_INVOKABLE void play();
-    Q_INVOKABLE void pause();
-    Q_INVOKABLE void stop();
-    Q_INVOKABLE void playPause();
-    Q_INVOKABLE void setState(State state);
+    void play();
+    void pause();
+    void stop();
+    void playPause();
+    void setState(State state);
 
 protected slots:
     virtual void frame();
