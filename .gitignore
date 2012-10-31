@@ -1,0 +1,17 @@
+temp/
+.~*
+*~
+*.o
+*.bak
+Ui_*
+ui_*
+out/
+Temp/
+*-build-*/
+*.user
+moc_*
+qrc_*
+Makefile
+*.vpp~*
+*.orig
+*.autosave
