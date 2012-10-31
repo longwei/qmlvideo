@@ -95,9 +95,8 @@ void QmlVideo::paint(QPainter *p, const QStyleOptionGraphicsItem *style, QWidget
 
     glClear(GL_COLOR_BUFFER_BIT);
 
-    QRectF rect = sceneBoundingRect();
+    QRectF rect = boundingRect();
 
-    glLoadIdentity();
     glBegin(GL_QUADS);
         glColor3f(255,0,0);
         glVertex2d(rect.x(), rect.y());
