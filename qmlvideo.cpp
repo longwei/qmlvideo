@@ -26,8 +26,11 @@ void QmlVideo::paint(QPainter *p, const QStyleOptionGraphicsItem *style, QWidget
     glBegin(GL_QUADS);
         glColor3f(255,0,0);
         glVertex2d(rect.x(), rect.y());
+        glColor3f(0,255,0);
         glVertex2d(rect.x(), rect.y() + rect.height());
+        glColor3f(0,0,255);
         glVertex2d(rect.x() + rect.width(), rect.y() + rect.height());
+        glColor3f(0,255,0);
         glVertex2d(rect.x() + rect.width(), rect.y());
     glEnd();
 
