@@ -10,9 +10,9 @@ struct libvlc_media_player_t;
 class QmlVideo : public QDeclarativeItem
 {
     Q_OBJECT
-    Q_ENUMS(State);
-    Q_PROPERTY(State state READ state WRITE setState);
-    Q_PROPERTY(QString fileName READ fileName WRITE setFileName);
+    Q_ENUMS(State)
+    Q_PROPERTY(State state READ state WRITE setState)
+    Q_PROPERTY(QString fileName READ fileName WRITE setFileName)
 
 public:
     enum State
