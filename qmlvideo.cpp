@@ -145,8 +145,12 @@ void QmlVideo::paint(QPainter *p, const QStyleOptionGraphicsItem *style, QWidget
 unsigned int QmlVideo::vlcVideoFormatCallback(void **object, char *chroma, unsigned int *width, unsigned int *height,
                            unsigned int *pitches, unsigned int *lines)
 {
-    qDebug() << "Got format request:" << chroma << *width << *height;
-    return(0);
+    unsigned int retval = 0;
+    QmlVideo *instance = (QmlVideo *)*object;
+    QMetaObject::invokeMethod(instance, "setupFormat", Qt::BlockingQueuedConnection, Q_RETURN_ARG(quint32, retval),
+                              Q_ARG(char *, chroma), Q_ARG(unsigned int *, width), Q_ARG(unsigned int *, height),
+                              Q_ARG(unsigned int *, pitches), Q_ARG(unsigned int *, lines));
+    return(retval);
 }
 
 void *QmlVideo::vlcVideoLockCallBack(void *object, void **planes)
@@ -160,7 +164,9 @@ void *QmlVideo::vlcVideoLockCallBack(void *object, void **planes)
 
 void QmlVideo::vlcVideoUnlockCallback(void *object, void *picture, void * const *planes)
 {
-
+    QmlVideo *instance = (QmlVideo *)object;
+    QMetaObject::invokeMethod(instance, "updateTexture", Qt::BlockingQueuedConnection,
+                              Q_ARG(void *, picture), Q_ARG(void * const *, planes));
 }
 
 void QmlVideo::vlcVideoDisplayCallback(void *object, void *picture)
@@ -170,9 +176,10 @@ void QmlVideo::vlcVideoDisplayCallback(void *object, void *picture)
     QMetaObject::invokeMethod(instance, "paintFrame", Qt::BlockingQueuedConnection);
 }
 
-void QmlVideo::setupFormat(char *chroma, unsigned int *width, unsigned int *heigh, unsigned int *pitches, unsigned int *lines)
+quint32 QmlVideo::setupFormat(char *chroma, unsigned int *width, unsigned int *height, unsigned int *pitches, unsigned int *lines)
 {
-
+    qDebug() << "Got format request:" << chroma << *width << *height;
+    return(0);
 }
 
 void QmlVideo::updateTexture(void *picture, const void **planes)

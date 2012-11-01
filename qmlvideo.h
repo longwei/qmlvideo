@@ -44,7 +44,7 @@ public slots:
     void setState(State state);
 
 protected slots:
-    void setupFormat(char *chroma, unsigned int *width, unsigned int *heigh,
+    Q_INVOKABLE quint32 setupFormat(char *chroma, unsigned int *width, unsigned int *height,
                                unsigned int *pitches, unsigned int *lines);
     void updateTexture(void *picture, const void **planes);
     virtual void paintFrame();
