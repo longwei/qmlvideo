@@ -4,7 +4,9 @@
 #include <QDebug>
 #include <QTimer>
 #include <QMutexLocker>
+#include <QImage>
 #include <vlc/vlc.h>
+#include <QLabel>
 
 QmlVideo::QmlVideo(QDeclarativeItem *parent) :
     QDeclarativeItem(parent),
@@ -114,7 +116,17 @@ void QmlVideo::setFileName(const QString &fileName)
 
 void QmlVideo::paintFrame()
 {
+    static QLabel *label = NULL;
     //Just signal that we need to repaint the item.
+    qDebug() << "Saving...";
+    if(label == NULL)
+    {
+        label = new QLabel();
+        label->show();
+    }
+    QImage img((uchar *)m_pixelBuff, m_width, m_height, QImage::Format_RGB888);
+    label->setPixmap(QPixmap::fromImage(img));
+    //img.save("tmp.bmp", "bmp");
     update();
 }
 
@@ -179,10 +191,16 @@ void QmlVideo::vlcVideoDisplayCallback(void *object, void *picture)
 quint32 QmlVideo::setupFormat(char *chroma, unsigned int *width, unsigned int *height, unsigned int *pitches, unsigned int *lines)
 {
     qDebug() << "Got format request:" << chroma << *width << *height;
-    return(0);
+    strcpy(chroma, "RV24");
+    pitches[0] = *width * 3;
+    lines[0] = *height * 3;
+    m_pixelBuff = (char *)malloc((*width)*(*height)*3);
+    m_width = *width;
+    m_height = *height;
+    return(1);
 }
 
-void QmlVideo::updateTexture(void *picture, const void **planes)
+void QmlVideo::updateTexture(void *picture, void * const *planes)
 {
 
 }

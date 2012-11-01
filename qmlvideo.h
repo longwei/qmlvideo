@@ -46,7 +46,7 @@ public slots:
 protected slots:
     Q_INVOKABLE quint32 setupFormat(char *chroma, unsigned int *width, unsigned int *height,
                                unsigned int *pitches, unsigned int *lines);
-    void updateTexture(void *picture, const void **planes);
+    void updateTexture(void *picture, void * const *planes);
     virtual void paintFrame();
 
 private:
