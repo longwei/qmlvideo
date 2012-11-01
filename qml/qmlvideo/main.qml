@@ -10,6 +10,7 @@ Rectangle {
         id: video
         anchors.margins: 10;
         anchors.fill: parent;
+        fileName: "C:\\Users\\Public\\Videos\\Sample Videos\\wildlife.wmv";
     }
 
     MouseArea {
