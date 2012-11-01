@@ -116,22 +116,15 @@ void QmlVideo::setFileName(const QString &fileName)
 
 void QmlVideo::paintFrame()
 {
-    static QLabel *label = NULL;
     //Just signal that we need to repaint the item.
-    qDebug() << "Saving...";
-    if(label == NULL)
-    {
-        label = new QLabel();
-        label->show();
-    }
-    QImage img((uchar *)m_pixelBuff, m_width, m_height, QImage::Format_RGB888);
-    label->setPixmap(QPixmap::fromImage(img));
-    //img.save("tmp.bmp", "bmp");
     update();
 }
 
 void QmlVideo::paint(QPainter *p, const QStyleOptionGraphicsItem *style, QWidget *widget)
 {
+    QImage img((uchar *)m_pixelBuff, m_width, m_height, QImage::Format_RGB888);
+    p->drawImage(boundingRect(), img, QRect(0,0,m_width, m_height));
+    /*
     p->beginNativePainting();
 
     qDebug() << "Paint...";
@@ -152,6 +145,7 @@ void QmlVideo::paint(QPainter *p, const QStyleOptionGraphicsItem *style, QWidget
     glEnd();
 
     p->endNativePainting();
+    */
 }
 
 unsigned int QmlVideo::vlcVideoFormatCallback(void **object, char *chroma, unsigned int *width, unsigned int *height,
