@@ -5,6 +5,12 @@ DEPLOYMENTFOLDERS = folder_01
 
 QT += opengl declarative
 
+win32 {
+    INCLUDEPATH += "C:/Program Files (x86)/VideoLAN/VLC/sdk/include"
+    LIBS += "C:/Program Files (x86)/VideoLAN/VLC/sdk/lib/libvlccore.lib"
+    LIBS += "C:/Program Files (x86)/VideoLAN/VLC/sdk/lib/libvlc.lib"
+}
+
 # The .cpp file which was generated for your project. Feel free to hack it.
 SOURCES += main.cpp \
     qmlvideo.cpp
