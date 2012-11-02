@@ -21,8 +21,17 @@ Rectangle {
             state: Video.Playing;
             MouseArea {
                 anchors.fill: parent
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
                 onClicked: {
-                    parent.pause();
+                    if(mouse.button == Qt.LeftButton)
+                    {
+                        parent.pause();
+                    }
+                    else
+                    {
+                        parent.stop();
+                        parent.play();
+                    }
                 }
             }
         }
@@ -36,8 +45,17 @@ Rectangle {
             state: Video.Playing;
             MouseArea {
                 anchors.fill: parent
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
                 onClicked: {
-                    parent.playPause();
+                    if(mouse.button == Qt.LeftButton)
+                    {
+                        parent.pause();
+                    }
+                    else
+                    {
+                        parent.stop();
+                        parent.play();
+                    }
                 }
             }
         }
@@ -51,8 +69,17 @@ Rectangle {
             state: Video.Playing;
             MouseArea {
                 anchors.fill: parent
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
                 onClicked: {
-                    parent.playPause();
+                    if(mouse.button == Qt.LeftButton)
+                    {
+                        parent.pause();
+                    }
+                    else
+                    {
+                        parent.stop();
+                        parent.play();
+                    }
                 }
             }
         }
@@ -66,8 +93,17 @@ Rectangle {
             state: Video.Playing;
             MouseArea {
                 anchors.fill: parent
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
                 onClicked: {
-                    parent.playPause();
+                    if(mouse.button == Qt.LeftButton)
+                    {
+                        parent.pause();
+                    }
+                    else
+                    {
+                        parent.stop();
+                        parent.play();
+                    }
                 }
             }
         }
