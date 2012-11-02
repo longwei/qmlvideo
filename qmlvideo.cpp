@@ -7,11 +7,6 @@
 #include <QMutexLocker>
 #include <QImage>
 #include <vlc/vlc.h>
-#include <QLabel>
-
-#ifndef GL_BGR
-#define GL_BGR 0x80E0
-#endif
 
 QmlVideo::QmlVideo(QDeclarativeItem *parent) :
     QDeclarativeItem(parent),
