@@ -42,7 +42,7 @@ QmlVideo::~QmlVideo(){
 }
 
 void QmlVideo::clearUp(){
-    libvlc_media_player_stop(m_mediaPlayer);
+    if(m_mediaPlayer != NULL)libvlc_media_player_stop(m_mediaPlayer);
     if(m_mediaPlayer != NULL)libvlc_media_player_release(m_mediaPlayer);
     switch(m_paintMode)
     {
@@ -127,7 +127,7 @@ QString QmlVideo::fileName()
 
 void QmlVideo::setFileName(const QString &fileName)
 {
-//    clearUp();
+    clearUp();
     if(m_state != Stopped)
         setState(Stopped);
     m_fileName = fileName;
