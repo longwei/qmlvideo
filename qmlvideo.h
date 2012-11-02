@@ -30,6 +30,7 @@ public:
     };
 
     explicit QmlVideo(QDeclarativeItem *parent = 0);
+    ~QmlVideo();
     
     void paint(QPainter *p, const QStyleOptionGraphicsItem *style, QWidget *widget);
 
@@ -62,6 +63,8 @@ private:
     static void *vlcVideoLockCallBack(void *object, void **planes);
     static void vlcVideoUnlockCallback(void *object, void *picture, void * const *planes);
     static void vlcVideoDisplayCallback(void *object, void *picture);
+
+    void clearUp();
 
     //Video Properties
     QString m_fileName;
