@@ -6,6 +6,7 @@
 
 struct libvlc_instance_t;
 struct libvlc_media_player_t;
+struct libvlc_event_t;
 
 class QmlVideo : public QDeclarativeItem
 {
@@ -50,10 +51,11 @@ public slots:
     void setState(State state);
 
 protected slots:
-    Q_INVOKABLE quint32 setupFormat(char *chroma, unsigned int *width, unsigned int *height,
+    quint32 setupFormat(char *chroma, unsigned int *width, unsigned int *height,
                                unsigned int *pitches, unsigned int *lines);
     void updateTexture(void *picture, void * const *planes);
-    virtual void paintFrame();
+    void paintFrame();
+    void playerEvent(const libvlc_event_t *event);
 
 private:
     //VLC callback functions
@@ -62,6 +64,7 @@ private:
     static void *vlcVideoLockCallBack(void *object, void **planes);
     static void vlcVideoUnlockCallback(void *object, void *picture, void * const *planes);
     static void vlcVideoDisplayCallback(void *object, void *picture);
+    static void vlcVideoEventCallback(const libvlc_event_t *event, void *object);
 
     //Video Properties
     QString m_fileName;

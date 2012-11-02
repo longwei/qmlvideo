@@ -17,6 +17,7 @@ QmlVideo::QmlVideo(QDeclarativeItem *parent) :
     setFlag(QGraphicsItem::ItemHasNoContents, false);
     setSmooth(true);
 
+    qRegisterMetaType<const libvlc_event_t *>("const libvlc_event_t *");
 
 
     //Initialize the VLC library;
@@ -108,6 +109,18 @@ void QmlVideo::setFileName(const QString &fileName)
 
     libvlc_video_set_format_callbacks(m_mediaPlayer, vlcVideoFormatCallback, NULL);
     libvlc_video_set_callbacks(m_mediaPlayer, vlcVideoLockCallBack, vlcVideoUnlockCallback, vlcVideoDisplayCallback, this);
+    libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerOpening, vlcVideoEventCallback, this);
+    libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerBuffering, vlcVideoEventCallback, this);
+    libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerPlaying, vlcVideoEventCallback, this);
+    libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerPaused, vlcVideoEventCallback, this);
+    libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerStopped, vlcVideoEventCallback, this);
+    libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerEndReached, vlcVideoEventCallback, this);
+    libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerEncounteredError, vlcVideoEventCallback, this);
+    //libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerTimeChanged, vlcVideoEventCallback, this);
+    //libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerPositionChanged, vlcVideoEventCallback, this);
+    libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerSeekableChanged, vlcVideoEventCallback, this);
+    libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerPausableChanged, vlcVideoEventCallback, this);
+    libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerLengthChanged , vlcVideoEventCallback, this);
 }
 
 void QmlVideo::paintFrame()
@@ -298,4 +311,28 @@ void QmlVideo::updateTexture(void *picture, void * const *planes)
 
         break;
     }
+}
+
+void QmlVideo::vlcVideoEventCallback(const libvlc_event_t *event, void *object)
+{
+    libvlc_event_t *tmp = new libvlc_event_t;
+    memcpy(tmp,event,sizeof(libvlc_event_t));
+
+    QmlVideo *instance = (QmlVideo *)object;
+    QMetaObject::invokeMethod(instance, "playerEvent", Qt::QueuedConnection,
+                              Q_ARG(const libvlc_event_t *, tmp));
+}
+
+void QmlVideo::playerEvent(const libvlc_event_t *event)
+{
+    qDebug() << "Event: " << libvlc_event_type_name(event->type);
+    switch(event->type)
+    {
+    case libvlc_MediaPlayerEndReached:
+        setFileName(fileName());
+    default:
+        break;
+    }
+
+    delete event;
 }
