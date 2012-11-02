@@ -6,17 +6,69 @@ Rectangle {
     width: 360
     height: 360
 
-    Video {
-        id: video
-        anchors.margins: 10;
+    Grid {
+        rows: 2; columns: 2;
         anchors.fill: parent;
-        fileName: "C:\\Users\\Public\\Videos\\Sample Videos\\wildlife.wmv";
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        onClicked: {
-            video.playPause();
+        id: column;
+        Video {
+            id: video
+            anchors.margins: 10;
+            width: parent.width/2;
+            height: parent.height/2;
+            //fileName: "C:\\Users\\Public\\Videos\\Sample Videos\\wildlife.wmv";
+            fileName: "rtsp://10.0.0.33/img/video.sav"
+            state: Video.Playing;
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    parent.playPause();
+                }
+            }
+        }
+        Video {
+            id: video2
+            anchors.margins: 10;
+            width: parent.width/2;
+            height: parent.height/2;
+            fileName: "C:\\Users\\Public\\Videos\\Sample Videos\\wildlife.wmv";
+            //fileName: "rtsp://10.0.0.33/img/video.sav"
+            state: Video.Playing;
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    parent.playPause();
+                }
+            }
+        }
+        Video {
+            id: video3
+            anchors.margins: 10;
+            width: parent.width/2;
+            height: parent.height/2;
+            fileName: "C:\\Users\\Public\\Videos\\Sample Videos\\wildlife.wmv";
+            //fileName: "rtsp://10.0.0.33/img/video.sav"
+            state: Video.Playing;
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    parent.playPause();
+                }
+            }
+        }
+        Video {
+            id: video4
+            anchors.margins: 10;
+            width: parent.width/2;
+            height: parent.height/2;
+            //fileName: "C:\\Users\\Public\\Videos\\Sample Videos\\wildlife.wmv";
+            fileName: "rtsp://10.0.0.33/img/video.sav"
+            state: Video.Playing;
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    parent.playPause();
+                }
+            }
         }
     }
 }
