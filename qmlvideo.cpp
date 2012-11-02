@@ -8,9 +8,14 @@
 #include <vlc/vlc.h>
 #include <QLabel>
 
+#ifndef GL_BGR
+#define GL_BGR 0x80E0
+#endif
+
 QmlVideo::QmlVideo(QDeclarativeItem *parent) :
     QDeclarativeItem(parent),
-    m_state(Stopped)
+    m_state(Stopped),
+    m_paintMode(PaintModeTexture)
 {
     //Set up item options
     setFlag(QGraphicsItem::ItemHasNoContents, false);
@@ -19,8 +24,9 @@ QmlVideo::QmlVideo(QDeclarativeItem *parent) :
     //Initialize the VLC library;
     const char *argv[] =
     {
-        "--no-audio", /* skip any audio track */
+
         "--no-xlib", /* tell VLC to not use Xlib */
+        "--network-caching=500"
     };
     int argc = sizeof(argv) / sizeof(*argv);
     m_libVlc = libvlc_new(argc,argv);
@@ -122,30 +128,46 @@ void QmlVideo::paintFrame()
 
 void QmlVideo::paint(QPainter *p, const QStyleOptionGraphicsItem *style, QWidget *widget)
 {
-    QImage img((uchar *)m_pixelBuff, m_width, m_height, QImage::Format_RGB888);
-    p->drawImage(boundingRect(), img, QRect(0,0,m_width, m_height));
-    /*
-    p->beginNativePainting();
+    switch(m_paintMode)
+    {
+    case PaintModeQPainter:
+    {
+        QImage img((uchar *)m_pixelBuff, m_width, m_height, QImage::Format_RGB888);
+        p->drawImage(boundingRect(), img.rgbSwapped(), QRect(0,0,m_width, m_height));
+    }
+        break;
+    case PaintModeTexture:
+    {
+        p->beginNativePainting();
 
-    qDebug() << "Paint...";
+        //qDebug() << "Paint...";
 
-    glClear(GL_COLOR_BUFFER_BIT);
+        QRectF rect = boundingRect();
 
-    QRectF rect = boundingRect();
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, m_textureId);
 
-    glBegin(GL_QUADS);
-        glColor3f(255,0,0);
-        glVertex2d(rect.x(), rect.y());
-        glColor3f(0,255,0);
-        glVertex2d(rect.x(), rect.y() + rect.height());
-        glColor3f(0,0,255);
-        glVertex2d(rect.x() + rect.width(), rect.y() + rect.height());
-        glColor3f(0,255,0);
-        glVertex2d(rect.x() + rect.width(), rect.y());
-    glEnd();
+        glBegin(GL_QUADS);
+            glTexCoord2d(0.0,0.0);
+            glColor3i(0,0,0);
+            glVertex2d(rect.x(), rect.y());
+            glTexCoord2d(0.0,1.0);
+            glVertex2d(rect.x(), rect.y() + rect.height());
+            glTexCoord2d(1.0,1.0);
+            glVertex2d(rect.x() + rect.width(), rect.y() + rect.height());
+            glTexCoord2d(1.0,0.0);
+            glVertex2d(rect.x() + rect.width(), rect.y());
+        glEnd();
 
-    p->endNativePainting();
-    */
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDisable(GL_TEXTURE_2D);
+
+        p->endNativePainting();
+    }
+        break;
+    case PaintModePBO:
+        break;
+    }
 }
 
 unsigned int QmlVideo::vlcVideoFormatCallback(void **object, char *chroma, unsigned int *width, unsigned int *height,
@@ -188,13 +210,57 @@ quint32 QmlVideo::setupFormat(char *chroma, unsigned int *width, unsigned int *h
     strcpy(chroma, "RV24");
     pitches[0] = *width * 3;
     lines[0] = *height * 3;
-    m_pixelBuff = (char *)malloc((*width)*(*height)*3);
     m_width = *width;
     m_height = *height;
+
+    switch(m_paintMode)
+    {
+    case PaintModeQPainter:
+        m_pixelBuff = (char *)malloc((*width)*(*height)*3);
+        break;
+    case PaintModeTexture:
+        m_pixelBuff = (char *)malloc((*width)*(*height)*3);
+        glGenTextures(1, &m_textureId);
+        glBindTexture(GL_TEXTURE_2D, m_textureId);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        break;
+    case PaintModePBO:
+        glGenTextures(1, &m_textureId);
+        glBindTexture(GL_TEXTURE_2D, m_textureId);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+//        glGenBuffers(1, &m_pbo1);
+//        glGenBuffers(1, &m_pbo2);
+        break;
+    }
+
     return(1);
 }
 
 void QmlVideo::updateTexture(void *picture, void * const *planes)
 {
-
+    switch(m_paintMode)
+    {
+    case PaintModeQPainter:
+        break;
+    case PaintModeTexture:
+        //qDebug() << "Decode";
+        glBindTexture(GL_TEXTURE_2D, m_textureId);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, m_pixelBuff);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        break;
+    case PaintModePBO:
+        break;
+    }
 }

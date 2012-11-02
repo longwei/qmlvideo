@@ -14,6 +14,13 @@ class QmlVideo : public QDeclarativeItem
     Q_PROPERTY(State state READ state WRITE setState);
     Q_PROPERTY(QString fileName READ fileName WRITE setFileName);
 
+    enum PaintMode
+    {
+        PaintModeQPainter,
+        PaintModeTexture,
+        PaintModePBO
+    };
+
 public:
     enum State
     {
@@ -68,6 +75,10 @@ private:
     QMutex *m_pixelMutex;
     libvlc_instance_t *m_libVlc;
     libvlc_media_player_t *m_mediaPlayer;
+    PaintMode m_paintMode;
+    quint32 m_textureId;
+    quint32 m_pbo1;
+    quint32 m_pbo2;
 };
 
 #endif // QMLVIDEO_H
