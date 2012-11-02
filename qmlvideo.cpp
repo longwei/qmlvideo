@@ -24,9 +24,10 @@ QmlVideo::QmlVideo(QDeclarativeItem *parent) :
     //Initialize the VLC library;
     const char *argv[] =
     {
-
         "--no-xlib", /* tell VLC to not use Xlib */
-        "--network-caching=500"
+        "--network-caching=500",
+        "--no-video-title-show",
+        "--disable-screensaver",
     };
     int argc = sizeof(argv) / sizeof(*argv);
     m_libVlc = libvlc_new(argc,argv);
