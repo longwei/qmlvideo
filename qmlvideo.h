@@ -11,9 +11,9 @@ struct libvlc_event_t;
 class QmlVideo : public QDeclarativeItem
 {
     Q_OBJECT
-    Q_ENUMS(State);
-    Q_PROPERTY(State state READ state WRITE setState);
-    Q_PROPERTY(QString fileName READ fileName WRITE setFileName);
+    Q_ENUMS(State)
+    Q_PROPERTY(State state READ state WRITE setState)
+    Q_PROPERTY(QString fileName READ fileName WRITE setFileName)
 
     enum PaintMode
     {
@@ -31,6 +31,7 @@ public:
     };
 
     explicit QmlVideo(QDeclarativeItem *parent = 0);
+    ~QmlVideo();
     
     void paint(QPainter *p, const QStyleOptionGraphicsItem *style, QWidget *widget);
 
@@ -65,6 +66,8 @@ private:
     static void vlcVideoUnlockCallback(void *object, void *picture, void * const *planes);
     static void vlcVideoDisplayCallback(void *object, void *picture);
     static void vlcVideoEventCallback(const libvlc_event_t *event, void *object);
+
+    void clearUp();
 
     //Video Properties
     QString m_fileName;

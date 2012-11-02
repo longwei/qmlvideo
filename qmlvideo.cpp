@@ -11,7 +11,11 @@
 QmlVideo::QmlVideo(QDeclarativeItem *parent) :
     QDeclarativeItem(parent),
     m_state(Stopped),
-    m_paintMode(PaintModePBO)
+    m_paintMode(PaintModePBO),
+    m_textureId(0),
+    m_pbo1(0),
+    m_pbo2(0)
+
 {
     //Set up item options
     setFlag(QGraphicsItem::ItemHasNoContents, false);
@@ -30,6 +34,32 @@ QmlVideo::QmlVideo(QDeclarativeItem *parent) :
     };
     int argc = sizeof(argv) / sizeof(*argv);
     m_libVlc = libvlc_new(argc,argv);
+}
+
+QmlVideo::~QmlVideo(){
+    clearUp();
+    libvlc_release(m_libVlc);
+
+}
+
+void QmlVideo::clearUp(){
+    libvlc_media_player_stop(m_mediaPlayer);
+    if(m_mediaPlayer != NULL)libvlc_media_player_release(m_mediaPlayer);
+    switch(m_paintMode)
+    {
+    case PaintModeQPainter:
+        if(m_pixelBuff != NULL)free(m_pixelBuff);
+        break;
+    case PaintModeTexture:
+        if(m_pixelBuff != NULL)free(m_pixelBuff);
+        if(m_textureId != 0){glDeleteTextures(1,&m_textureId);}
+        break;
+    case PaintModePBO:
+        if(m_textureId != 0){glDeleteTextures(1,&m_textureId);}
+        if(m_pbo1 != 0){glDeleteBuffers(1, &m_pbo1);}
+        if(m_pbo2 != 0){glDeleteBuffers(1, &m_pbo2);}
+        break;
+    }
 }
 
 QmlVideo::State QmlVideo::state()
@@ -86,6 +116,7 @@ QString QmlVideo::fileName()
 
 void QmlVideo::setFileName(const QString &fileName)
 {
+//    clearUp();
     if(m_state != Stopped)
         setState(Stopped);
     m_fileName = fileName;
