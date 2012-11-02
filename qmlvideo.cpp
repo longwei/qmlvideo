@@ -1,5 +1,6 @@
 #include "qmlvideo.h"
 #include <QPainter>
+#include <GL/glew.h>
 #include <qgl.h>
 #include <QDebug>
 #include <QTimer>
@@ -15,7 +16,7 @@
 QmlVideo::QmlVideo(QDeclarativeItem *parent) :
     QDeclarativeItem(parent),
     m_state(Stopped),
-    m_paintMode(PaintModeTexture)
+    m_paintMode(PaintModePBO)
 {
     //Set up item options
     setFlag(QGraphicsItem::ItemHasNoContents, false);
@@ -56,34 +57,19 @@ void QmlVideo::stop()
     setState(Stopped);
 }
 
-void QmlVideo::playPause()
-{
-    switch(m_state)
-    {
-    case Stopped:
-        setState(Playing);
-        break;
-    case Playing:
-        setState(Paused);
-        break;
-    case Paused:
-        setState(Playing);
-        break;
-    }
-}
-
 void QmlVideo::setState(State state)
 {
-    if(state == m_state)
-        return;
-
+    State oldState = m_state;
     m_state = state;
+
+    qDebug() << m_state << oldState;
 
     switch(m_state)
     {
     case Stopped:
         qDebug() << "Stopped";
         libvlc_media_player_stop(m_mediaPlayer);
+        libvlc_media_player_set_time(m_mediaPlayer, 0);
         emit(stopped());
         break;
     case Playing:
@@ -93,7 +79,10 @@ void QmlVideo::setState(State state)
         break;
     case Paused:
         qDebug() << "Paused";
-        libvlc_media_player_set_pause(m_mediaPlayer,1);
+        if(oldState == Paused)
+            play();
+        else
+            libvlc_media_player_pause(m_mediaPlayer);
         emit(paused());
         break;
     }
@@ -137,6 +126,7 @@ void QmlVideo::paint(QPainter *p, const QStyleOptionGraphicsItem *style, QWidget
         p->drawImage(boundingRect(), img.rgbSwapped(), QRect(0,0,m_width, m_height));
     }
         break;
+    case PaintModePBO:
     case PaintModeTexture:
     {
         p->beginNativePainting();
@@ -165,8 +155,6 @@ void QmlVideo::paint(QPainter *p, const QStyleOptionGraphicsItem *style, QWidget
 
         p->endNativePainting();
     }
-        break;
-    case PaintModePBO:
         break;
     }
 }
@@ -231,6 +219,13 @@ quint32 QmlVideo::setupFormat(char *chroma, unsigned int *width, unsigned int *h
         glBindTexture(GL_TEXTURE_2D, 0);
         break;
     case PaintModePBO:
+        GLenum err = glewInit();
+        if (GLEW_OK != err)
+        {
+            qWarning() << "GLEW init failed!";
+        }
+
+
         glGenTextures(1, &m_textureId);
         glBindTexture(GL_TEXTURE_2D, m_textureId);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -240,8 +235,15 @@ quint32 QmlVideo::setupFormat(char *chroma, unsigned int *width, unsigned int *h
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
         glBindTexture(GL_TEXTURE_2D, 0);
 
-//        glGenBuffers(1, &m_pbo1);
-//        glGenBuffers(1, &m_pbo2);
+        glGenBuffers(1, &m_pbo1);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo1);
+        glBufferData(GL_PIXEL_UNPACK_BUFFER, m_width * m_height * 3, 0, GL_STREAM_DRAW);
+        m_pixelBuff = (char *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+        glGenBuffers(1, &m_pbo2);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo2);
+        glBufferData(GL_PIXEL_UNPACK_BUFFER, m_width * m_height * 3, 0, GL_STREAM_DRAW);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
         break;
     }
 
@@ -262,6 +264,25 @@ void QmlVideo::updateTexture(void *picture, void * const *planes)
         glBindTexture(GL_TEXTURE_2D, 0);
         break;
     case PaintModePBO:
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo1);
+        glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo2);
+        //Reset the buffer data to make sure we don't block when the buffer is mapped
+        glBufferData(GL_PIXEL_UNPACK_BUFFER, m_width * m_height * 3, 0, GL_STREAM_DRAW);
+        m_pixelBuff = (char *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+        quint32 tmp = m_pbo1;
+        m_pbo1 = m_pbo2;
+        m_pbo2 = tmp;
+
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo2);
+        glBindTexture(GL_TEXTURE_2D, m_textureId);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
         break;
     }
 }

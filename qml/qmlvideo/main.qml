@@ -16,12 +16,13 @@ Rectangle {
             width: parent.width/2;
             height: parent.height/2;
             //fileName: "C:\\Users\\Public\\Videos\\Sample Videos\\wildlife.wmv";
-            fileName: "rtsp://10.0.0.33/img/video.sav"
+            //fileName: "rtsp://10.0.0.33/img/video.sav"
+            fileName: "C:\\Users\\XWeng\\Downloads\\big_buck_bunny_1080p_h264.mov"
             state: Video.Playing;
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
-                    parent.playPause();
+                    parent.pause();
                 }
             }
         }

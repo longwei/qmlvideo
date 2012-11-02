@@ -47,7 +47,6 @@ public slots:
     void play(const QString &ileName = QString::Null());
     void pause();
     void stop();
-    void playPause();
     void setState(State state);
 
 protected slots:
