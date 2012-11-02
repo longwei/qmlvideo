@@ -43,7 +43,7 @@ QmlVideo::State QmlVideo::state()
 
 void QmlVideo::play(const QString &fileName)
 {
-    if(fileName.isNull())
+    if(!fileName.isNull())
         setFileName(fileName);
 
     setState(Playing);
@@ -64,11 +64,14 @@ void QmlVideo::setState(State state)
     State oldState = m_state;
     m_state = state;
 
+    if((oldState != Paused) && (oldState == m_state))
+        return;
+
     switch(m_state)
     {
     case Stopped:
         qDebug() << "Stopped";
-        libvlc_media_player_stop(m_mediaPlayer);
+        libvlc_media_player_pause(m_mediaPlayer);
         libvlc_media_player_set_time(m_mediaPlayer, 0);
         emit(stopped());
         break;
@@ -78,12 +81,14 @@ void QmlVideo::setState(State state)
         emit(playing());
         break;
     case Paused:
-        qDebug() << "Paused";
         if(oldState == Paused)
             play();
         else
+        {
+            qDebug() << "Paused";
             libvlc_media_player_pause(m_mediaPlayer);
-        emit(paused());
+            emit(paused());
+        }
         break;
     }
 
