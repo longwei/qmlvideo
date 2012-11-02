@@ -22,6 +22,8 @@ QmlVideo::QmlVideo(QDeclarativeItem *parent) :
     setFlag(QGraphicsItem::ItemHasNoContents, false);
     setSmooth(true);
 
+
+
     //Initialize the VLC library;
     const char *argv[] =
     {
@@ -61,8 +63,6 @@ void QmlVideo::setState(State state)
 {
     State oldState = m_state;
     m_state = state;
-
-    qDebug() << m_state << oldState;
 
     switch(m_state)
     {
@@ -196,6 +196,26 @@ void QmlVideo::vlcVideoDisplayCallback(void *object, void *picture)
 quint32 QmlVideo::setupFormat(char *chroma, unsigned int *width, unsigned int *height, unsigned int *pitches, unsigned int *lines)
 {
     qDebug() << "Got format request:" << chroma << *width << *height;
+
+    GLenum err = glewInit();
+    if (GLEW_OK != err)
+    {
+        m_paintMode = PaintModeQPainter;
+    }
+    else
+    {
+        if(GLEW_EXT_pixel_buffer_object)
+        {
+            m_paintMode = PaintModePBO;
+        }
+        else
+        {
+            m_paintMode = PaintModeTexture;
+        }
+    }
+
+    qDebug() << "Paint Mode:" << m_paintMode;
+
     strcpy(chroma, "RV24");
     pitches[0] = *width * 3;
     lines[0] = *height * 3;
@@ -219,13 +239,6 @@ quint32 QmlVideo::setupFormat(char *chroma, unsigned int *width, unsigned int *h
         glBindTexture(GL_TEXTURE_2D, 0);
         break;
     case PaintModePBO:
-        GLenum err = glewInit();
-        if (GLEW_OK != err)
-        {
-            qWarning() << "GLEW init failed!";
-        }
-
-
         glGenTextures(1, &m_textureId);
         glBindTexture(GL_TEXTURE_2D, m_textureId);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
