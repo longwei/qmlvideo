@@ -105,8 +105,6 @@ void QmlVideo::setState(State state)
             libvlc_media_player_pause(m_mediaPlayer);
         break;
     }
-
-    emit(stateChanged(state));
 }
 
 QString QmlVideo::fileName()
@@ -139,7 +137,7 @@ void QmlVideo::setFileName(const QString &fileName)
     //libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerPositionChanged, vlcVideoEventCallback, this);
     libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerSeekableChanged, vlcVideoEventCallback, this);
     libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerPausableChanged, vlcVideoEventCallback, this);
-    libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerLengthChanged , vlcVideoEventCallback, this);
+    libvlc_event_attach(libvlc_media_player_event_manager(m_mediaPlayer), libvlc_MediaPlayerLengthChanged, vlcVideoEventCallback, this);
 }
 
 void QmlVideo::paintFrame()
@@ -344,7 +342,6 @@ void QmlVideo::vlcVideoEventCallback(const libvlc_event_t *event, void *object)
 
 void QmlVideo::playerEvent(const libvlc_event_t *event)
 {
-    qDebug() << "Event: " << libvlc_event_type_name(event->type);
     switch(event->type)
     {
     case libvlc_MediaPlayerEndReached:
@@ -352,19 +349,33 @@ void QmlVideo::playerEvent(const libvlc_event_t *event)
     case libvlc_MediaPlayerStopped:
         qDebug() << "Stopped";
         m_state=Stopped;
+        emit(stateChanged(m_state));
         emit(stopped());
+        break;
+    case libvlc_MediaPlayerOpening:
+        qDebug() << "Opening";
+        m_state=Opening;
+        emit(stateChanged(m_state));
+        break;
+    case libvlc_MediaPlayerBuffering:
+        qDebug() << "Buffering";
+        m_state=Buffering;
+        emit(stateChanged(m_state));
         break;
     case libvlc_MediaPlayerPlaying:
         qDebug() << "Playing";
         m_state=Playing;
+        emit(stateChanged(m_state));
         emit(playing());
         break;
     case libvlc_MediaPlayerPaused:
         qDebug() << "Paused";
         m_state=Paused;
+        emit(stateChanged(m_state));
         emit(paused());
         break;
     default:
+        qDebug() << "Event: " << libvlc_event_type_name(event->type);
         break;
     }
 

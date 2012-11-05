@@ -25,6 +25,8 @@ class QmlVideo : public QDeclarativeItem
 public:
     enum State
     {
+        Opening,
+        Buffering,
         Stopped,
         Playing,
         Paused
