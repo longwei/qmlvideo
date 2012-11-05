@@ -11,7 +11,7 @@
 QmlVideo::QmlVideo(QDeclarativeItem *parent) :
     QDeclarativeItem(parent),
     m_state(Stopped),
-    m_paintMode(PaintModePBO),
+    m_paintMode(PaintModeQPainter),
     m_textureId(0),
     m_pbo1(0),
     m_pbo2(0)
