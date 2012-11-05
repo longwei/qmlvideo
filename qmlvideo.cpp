@@ -11,11 +11,7 @@
 QmlVideo::QmlVideo(QDeclarativeItem *parent) :
     QDeclarativeItem(parent),
     m_state(Stopped),
-    m_paintMode(PaintModeQPainter),
-    m_textureId(0),
-    m_pbo1(0),
-    m_pbo2(0)
-
+    m_paintMode(PaintModeQPainter)
 {
     //Set up item options
     setFlag(QGraphicsItem::ItemHasNoContents, false);
@@ -23,6 +19,9 @@ QmlVideo::QmlVideo(QDeclarativeItem *parent) :
 
     qRegisterMetaType<const libvlc_event_t *>("const libvlc_event_t *");
 
+    memset(m_textureId, 0, sizeof(quint32)*3);
+    memset(m_pbo1, 0, sizeof(quint32)*3);
+    memset(m_pbo2, 0, sizeof(quint32)*3);
 
     //Initialize the VLC library;
     const char *argv[] =
@@ -45,21 +44,10 @@ QmlVideo::~QmlVideo(){
 void QmlVideo::clearUp(){
     if(m_mediaPlayer != NULL)libvlc_media_player_stop(m_mediaPlayer);
     if(m_mediaPlayer != NULL)libvlc_media_player_release(m_mediaPlayer);
-    switch(m_paintMode)
-    {
-    case PaintModeQPainter:
-        if(m_pixelBuff != NULL)free(m_pixelBuff);
-        break;
-    case PaintModeTexture:
-        if(m_pixelBuff != NULL)free(m_pixelBuff);
-        if(m_textureId != 0){glDeleteTextures(1,&m_textureId);}
-        break;
-    case PaintModePBO:
-        if(m_textureId != 0){glDeleteTextures(1,&m_textureId);}
-        if(m_pbo1 != 0){glDeleteBuffers(1, &m_pbo1);}
-        if(m_pbo2 != 0){glDeleteBuffers(1, &m_pbo2);}
-        break;
-    }
+
+    cleanupBuffers();
+    cleanupTextures();
+    cleanupPBOs();
 }
 
 QmlVideo::State QmlVideo::state()
@@ -152,7 +140,7 @@ void QmlVideo::paint(QPainter *p, const QStyleOptionGraphicsItem *style, QWidget
     {
     case PaintModeQPainter:
     {
-        QImage img((uchar *)m_pixelBuff, m_width, m_height, QImage::Format_RGB888);
+        QImage img((uchar *)m_pixelBuff[0], m_width, m_height, QImage::Format_RGB888);
         p->drawImage(boundingRect(), img.rgbSwapped(), QRect(0,0,m_width, m_height));
     }
         break;
@@ -166,7 +154,7 @@ void QmlVideo::paint(QPainter *p, const QStyleOptionGraphicsItem *style, QWidget
         QRectF rect = boundingRect();
 
         glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, m_textureId);
+        glBindTexture(GL_TEXTURE_2D, m_textureId[0]);
 
         glBegin(GL_QUADS);
             glTexCoord2d(0.0,0.0);
@@ -205,7 +193,7 @@ void *QmlVideo::vlcVideoLockCallBack(void *object, void **planes)
     //Lock the pixel mutex, and hand the pixel buffer to VLC
     QmlVideo *instance = (QmlVideo *)object;
     QMutexLocker((instance->m_pixelMutex));
-    *planes = (void *)instance->m_pixelBuff;
+    planes[0] = (void *)instance->m_pixelBuff[0];
     return NULL;
 }
 
@@ -246,88 +234,18 @@ quint32 QmlVideo::setupFormat(char *chroma, unsigned int *width, unsigned int *h
 
     qDebug() << "Paint Mode:" << m_paintMode;
 
-    strcpy(chroma, "RV24");
-    pitches[0] = *width * 3;
-    lines[0] = *height * 3;
-    m_width = *width;
-    m_height = *height;
+    setupPlanes(chroma, width, height, pitches, lines);
+    setupBuffers();
+    setupTextures();
+    setupPBOs();
 
-    switch(m_paintMode)
-    {
-    case PaintModeQPainter:
-        m_pixelBuff = (char *)malloc((*width)*(*height)*3);
-        break;
-    case PaintModeTexture:
-        m_pixelBuff = (char *)malloc((*width)*(*height)*3);
-        glGenTextures(1, &m_textureId);
-        glBindTexture(GL_TEXTURE_2D, m_textureId);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        break;
-    case PaintModePBO:
-        glGenTextures(1, &m_textureId);
-        glBindTexture(GL_TEXTURE_2D, m_textureId);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
-        glBindTexture(GL_TEXTURE_2D, 0);
-
-        glGenBuffers(1, &m_pbo1);
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo1);
-        glBufferData(GL_PIXEL_UNPACK_BUFFER, m_width * m_height * 3, 0, GL_STREAM_DRAW);
-        m_pixelBuff = (char *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
-        glGenBuffers(1, &m_pbo2);
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo2);
-        glBufferData(GL_PIXEL_UNPACK_BUFFER, m_width * m_height * 3, 0, GL_STREAM_DRAW);
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-
-        break;
-    }
-
-    return(1);
+    return(m_numPlanes);
 }
 
 void QmlVideo::updateTexture(void *picture, void * const *planes)
 {
-    switch(m_paintMode)
-    {
-    case PaintModeQPainter:
-        break;
-    case PaintModeTexture:
-        //qDebug() << "Decode";
-        glBindTexture(GL_TEXTURE_2D, m_textureId);
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, m_pixelBuff);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        break;
-    case PaintModePBO:
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo1);
-        glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo2);
-        //Reset the buffer data to make sure we don't block when the buffer is mapped
-        glBufferData(GL_PIXEL_UNPACK_BUFFER, m_width * m_height * 3, 0, GL_STREAM_DRAW);
-        m_pixelBuff = (char *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-
-        quint32 tmp = m_pbo1;
-        m_pbo1 = m_pbo2;
-        m_pbo2 = tmp;
-
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo2);
-        glBindTexture(GL_TEXTURE_2D, m_textureId);
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, 0);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-
-        break;
-    }
+    updateTextures();
+    updatePBOs();
 }
 
 void QmlVideo::vlcVideoEventCallback(const libvlc_event_t *event, void *object)
@@ -380,4 +298,170 @@ void QmlVideo::playerEvent(const libvlc_event_t *event)
     }
 
     delete event;
+}
+
+void QmlVideo::setupPlanes(char *chroma, unsigned int *width, unsigned int *height,
+                 unsigned int *pitches, unsigned int *lines)
+{
+    switch(m_paintMode)
+    {
+    case PaintModeQPainter:
+        strcpy(chroma, "RV24");
+        pitches[0] = *width * 3;
+        lines[0] = *height * 3;
+        m_width = *width;
+        m_height = *height;
+        m_numPlanes = 1;
+        break;
+    case PaintModeTexture:
+    case PaintModePBO:
+        strcpy(chroma, "RV24");
+        pitches[0] = *width * 3;
+        lines[0] = *height * 3;
+        m_width = *width;
+        m_height = *height;
+        m_numPlanes = 1;
+        break;
+    }
+}
+
+void QmlVideo::setupBuffers()
+{
+    switch(m_paintMode)
+    {
+    case PaintModeQPainter:
+    case PaintModeTexture:
+        qDebug() << "Setting up buffers";
+        m_pixelBuff[0] = new char[m_width*m_height*3];
+        break;
+    case PaintModePBO:
+        break;
+    }
+}
+
+void QmlVideo::cleanupBuffers()
+{
+    switch(m_paintMode)
+    {
+    case PaintModeQPainter:
+    case PaintModeTexture:
+        delete m_pixelBuff[0];
+        break;
+    case PaintModePBO:
+        break;
+    }
+}
+
+void QmlVideo::setupTextures()
+{
+    switch(m_paintMode) {
+    case PaintModeQPainter:
+        break;
+    case PaintModeTexture:
+    case PaintModePBO:
+        qDebug() << "Setting up textures";
+        glGenTextures(1, &m_textureId[0]);
+        glBindTexture(GL_TEXTURE_2D, m_textureId[0]);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        break;
+    }
+}
+
+void QmlVideo::cleanupTextures()
+{
+    switch(m_paintMode) {
+    case PaintModeQPainter:
+        break;
+    case PaintModeTexture:
+    case PaintModePBO:
+        if(m_textureId[0] != 0){glDeleteTextures(1,&m_textureId[0]);}
+        break;
+    }
+}
+
+void QmlVideo::updateTextures()
+{
+    switch(m_paintMode) {
+    case PaintModeQPainter:
+        break;
+    case PaintModeTexture:
+        qDebug() << "Updating Textures";
+        glBindTexture(GL_TEXTURE_2D, m_textureId[0]);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, m_pixelBuff[0]);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        break;
+    case PaintModePBO:
+        break;
+    }
+}
+
+void QmlVideo::setupPBOs()
+{
+    switch(m_paintMode)
+    {
+    case PaintModeQPainter:
+    case PaintModeTexture:
+        break;
+    case PaintModePBO:
+        qDebug() << "Setting up PBOs";
+        glGenBuffers(1, &m_pbo1[0]);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo1[0]);
+        glBufferData(GL_PIXEL_UNPACK_BUFFER, m_width * m_height * 3, 0, GL_STREAM_DRAW);
+        m_pixelBuff[0] = (char *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+        glGenBuffers(1, &m_pbo2[0]);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo2[0]);
+        glBufferData(GL_PIXEL_UNPACK_BUFFER, m_width * m_height * 3, 0, GL_STREAM_DRAW);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+        break;
+    }
+}
+
+void QmlVideo::cleanupPBOs()
+{
+    switch(m_paintMode)
+    {
+    case PaintModeQPainter:
+    case PaintModeTexture:
+        break;
+    case PaintModePBO:
+        if(m_pbo1[0] != 0){glDeleteBuffers(1, &m_pbo1[0]);}
+        if(m_pbo2[0] != 0){glDeleteBuffers(1, &m_pbo2[0]);}
+        break;
+    }
+}
+
+void QmlVideo::updatePBOs()
+{
+    switch(m_paintMode)
+    {
+    case PaintModeQPainter:
+    case PaintModeTexture:
+        break;
+    case PaintModePBO:
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo1[0]);
+        glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo2[0]);
+        //Reset the buffer data to make sure we don't block when the buffer is mapped
+        glBufferData(GL_PIXEL_UNPACK_BUFFER, m_width * m_height * 3, 0, GL_STREAM_DRAW);
+        m_pixelBuff[0] = (char *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+        quint32 tmp = m_pbo1[0];
+        m_pbo1[0] = m_pbo2[0];
+        m_pbo2[0] = tmp;
+
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo2[0]);
+        glBindTexture(GL_TEXTURE_2D, m_textureId[0]);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+        break;
+    }
 }

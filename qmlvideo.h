@@ -71,6 +71,17 @@ private:
 
     void clearUp();
 
+    void setupPlanes(char *chroma, unsigned int *width, unsigned int *height,
+                     unsigned int *pitches, unsigned int *lines);
+    void setupBuffers();
+    void cleanupBuffers();
+    void setupTextures();
+    void cleanupTextures();
+    void updateTextures();
+    void setupPBOs();
+    void cleanupPBOs();
+    void updatePBOs();
+
     //Video Properties
     QString m_fileName;
     quint32 m_width;
@@ -78,14 +89,15 @@ private:
 
     //State and buffer variables
     State m_state;
-    char *m_pixelBuff;
+    char *m_pixelBuff[3];
     QMutex *m_pixelMutex;
     libvlc_instance_t *m_libVlc;
     libvlc_media_player_t *m_mediaPlayer;
     PaintMode m_paintMode;
-    quint32 m_textureId;
-    quint32 m_pbo1;
-    quint32 m_pbo2;
+    quint32 m_textureId[3];
+    quint32 m_pbo1[3];
+    quint32 m_pbo2[3];
+    int m_numPlanes;
 };
 
 #endif // QMLVIDEO_H
