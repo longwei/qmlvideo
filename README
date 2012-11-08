@@ -1,0 +1,64 @@
+Video player for QML component, using VLC as decoder.
+
+
+Overview.
+The pipeline of video playing is
+1. the VLC parsing the input video(local file or rtsp stream),
+
+2. decode it and output frame
+
+3. convert them from YUV to RGB
+
+4. upload to texture
+
+5. displaying it.
+
+Note:
+
+1. main rendering thread ini VLC engine
+
+2. load media, created media player, set callbacks
+
+3. video format info 
+    determine colorspace
+    call to render thread.
+    -> setupsFormat return number of plane.
+
+4. lock callback 
+    Lock Buffer Mutex(I won't mess up with the frame that displaying)
+    send pixel buffer into VLC, 
+
+
+5. unlock for video memory 
+    -> updateTexture
+    
+
+6. display callback
+   -> paintFrame.
+   -> update to repaint
+
+   QMetaObject::invokeMethod for cross thread function call.
+
+7. when VLC thread is ready on next frame, it call lock-> unlock-> display callback in order.
+
+
+
+Texture Mode: Synchronous Transfers
+GPU -------------draw           
+BUS -------upload  
+CPU -- copy----------copy
+
+PBO mode: Async transfer
+save one more memory copy, vlc will draw into pixelbuffer memory space.
+GPU -----------------draw0---draw1               
+BUS ---------upload0-upload1-upload0  
+CPU -- copy0-copy1---copy2
+
+
+
+
+use shader to convert colorspace of texture?
+
+
+
+
